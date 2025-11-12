@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>Loan Calculator</title>
     <style>
         * {
@@ -224,13 +226,166 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 15px;
+                max-width: 100%;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .header p {
+                font-size: 14px;
+            }
+
             .content {
                 grid-template-columns: 1fr;
-                gap: 30px;
+                gap: 20px;
+                padding: 20px;
             }
 
             .amortization-section {
                 grid-column: 1;
+            }
+
+            .results {
+                padding: 15px;
+            }
+
+            .result-item {
+                padding: 12px 0;
+            }
+
+            .result-label,
+            .result-value {
+                font-size: 14px;
+            }
+
+            .result-value.highlight {
+                font-size: 18px;
+            }
+
+            /* Show mobile hint */
+            .mobile-hint {
+                display: block !important;
+            }
+
+            /* Make table scrollable horizontally on mobile */
+            .table-wrapper {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin: 0 -20px;
+                padding: 0 20px;
+            }
+
+            /* Make table more compact on mobile */
+            th, td {
+                padding: 10px 8px;
+                font-size: 13px;
+            }
+
+            th {
+                font-size: 11px;
+            }
+
+            /* Ensure table doesn't force zoom */
+            table {
+                min-width: 600px;
+                white-space: nowrap;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 5px;
+            }
+
+            .container {
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 15px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 13px;
+            }
+
+            .content {
+                padding: 15px;
+                gap: 15px;
+            }
+
+            .form-group {
+                gap: 6px;
+            }
+
+            label {
+                font-size: 12px;
+            }
+
+            input[type="number"] {
+                font-size: 14px;
+                padding: 12px 12px 12px 30px;
+            }
+
+            .btn-calculate {
+                padding: 15px 30px;
+                font-size: 16px;
+            }
+
+            .results h2 {
+                font-size: 18px;
+                margin-bottom: 15px;
+            }
+
+            .result-label {
+                font-size: 13px;
+            }
+
+            .result-value {
+                font-size: 15px;
+            }
+
+            .result-value.highlight {
+                font-size: 20px;
+            }
+
+            .table-wrapper {
+                margin: 0 -15px;
+                padding: 0 15px;
+            }
+
+            th, td {
+                padding: 8px 5px;
+                font-size: 11px;
+            }
+
+            th {
+                font-size: 9px;
+            }
+
+            /* Optimize table for small screens */
+            .amortization-section h2 {
+                font-size: 18px;
+            }
+
+            table {
+                min-width: 500px;
             }
         }
     </style>
@@ -295,6 +450,9 @@
 
             <div class="amortization-section hidden" id="amortizationSection">
                 <h2>📊 Amortization Schedule</h2>
+                <p class="mobile-hint" style="display: none; font-size: 12px; color: #666; margin-bottom: 10px; font-style: italic;">
+                    💡 Swipe left to see all columns
+                </p>
                 <div class="table-wrapper">
                     <table>
                         <thead>
@@ -345,18 +503,18 @@
                                 (Math.pow(1 + monthlyRate, months) - 1);
             }
 
-            // Calculate totals
-            const totalAmount = monthlyPayment * months;
-            const totalInterest = totalAmount - principal;
+            // Generate amortization schedule and get accurate totals
+            const scheduleData = generateAmortizationSchedule(principal, monthlyRate, monthlyPayment, months);
+
+            // Use actual totals from amortization schedule for accuracy
+            const totalAmount = scheduleData.totalPaid;
+            const totalInterest = scheduleData.totalInterest;
 
             // Update results display
             document.getElementById('monthlyPayment').textContent = formatCurrency(monthlyPayment);
             document.getElementById('totalPrincipal').textContent = formatCurrency(principal);
             document.getElementById('totalInterest').textContent = formatCurrency(totalInterest);
             document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
-
-            // Generate amortization schedule
-            generateAmortizationSchedule(principal, monthlyRate, monthlyPayment, months);
 
             // Show amortization section
             document.getElementById('amortizationSection').classList.remove('hidden');
@@ -367,13 +525,22 @@
             tableBody.innerHTML = '';
 
             let balance = principal;
+            let totalInterestPaid = 0;
+            let totalPaid = 0;
 
             for (let month = 1; month <= months; month++) {
                 // Calculate interest for this month
                 const interestPayment = balance * monthlyRate;
                 
                 // Calculate principal payment
-                const principalPayment = monthlyPayment - interestPayment;
+                let principalPayment = monthlyPayment - interestPayment;
+                
+                // For the last payment, adjust to pay off remaining balance exactly
+                let currentPayment = monthlyPayment;
+                if (month === months) {
+                    principalPayment = balance;
+                    currentPayment = principalPayment + interestPayment;
+                }
                 
                 // Update balance
                 balance -= principalPayment;
@@ -381,11 +548,15 @@
                 // Ensure balance doesn't go negative due to rounding
                 if (balance < 0.01) balance = 0;
 
+                // Track totals
+                totalInterestPaid += interestPayment;
+                totalPaid += currentPayment;
+
                 // Create table row
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${month}</td>
-                    <td>${formatCurrency(monthlyPayment)}</td>
+                    <td>${formatCurrency(currentPayment)}</td>
                     <td>${formatCurrency(principalPayment)}</td>
                     <td>${formatCurrency(interestPayment)}</td>
                     <td>${formatCurrency(balance)}</td>
@@ -393,6 +564,12 @@
                 
                 tableBody.appendChild(row);
             }
+
+            // Return accurate totals based on actual amortization
+            return {
+                totalInterest: totalInterestPaid,
+                totalPaid: totalPaid
+            };
         }
 
         // Calculate on page load with default values

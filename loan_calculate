@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loan Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            padding: 40px;
+        }
+
+        .input-section, .output-section {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-prefix {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #666;
+            font-weight: 600;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 15px 15px 15px 35px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn-calculate {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-calculate:active {
+            transform: translateY(0);
+        }
+
+        .results {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            border-left: 5px solid #667eea;
+        }
+
+        .results h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .result-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .result-value.highlight {
+            color: #10b981;
+            font-size: 24px;
+        }
+
+        .amortization-section {
+            grid-column: 1 / -1;
+            margin-top: 20px;
+        }
+
+        .amortization-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 1px;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+
+        tbody tr:nth-child(even):hover {
+            background-color: #f8f9fa;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .amortization-section {
+                grid-column: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💰 Loan Payment Calculator</h1>
+            <p>Calculate your monthly payments and view detailed amortization schedule</p>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <div class="form-group">
+                    <label>Loan Amount</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">$</span>
+                        <input type="number" id="loanAmount" value="200000" min="0" step="1000">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Interest Rate (Annual %)</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">%</span>
+                        <input type="number" id="interestRate" value="6.75" min="0" step="0.01">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Repayment Period (Months)</label>
+                    <div class="input-wrapper">
+                        <span class="input-prefix">#</span>
+                        <input type="number" id="repaymentPeriod" value="360" min="1" step="1">
+                    </div>
+                </div>
+
+                <button class="btn-calculate" onclick="calculateLoan()">Estimate Payments</button>
+            </div>
+
+            <div class="output-section">
+                <div class="results" id="results">
+                    <h2>Payment Summary</h2>
+                    <div class="result-item">
+                        <span class="result-label">Monthly Payment</span>
+                        <span class="result-value highlight" id="monthlyPayment">$0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Total Principal</span>
+                        <span class="result-value" id="totalPrincipal">$0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Total Interest</span>
+                        <span class="result-value" id="totalInterest">$0.00</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Total Amount Paid</span>
+                        <span class="result-value" id="totalAmount">$0.00</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="amortization-section hidden" id="amortizationSection">
+                <h2>📊 Amortization Schedule</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Month</th>
+                                <th>Payment</th>
+                                <th>Principal</th>
+                                <th>Interest</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="amortizationTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatCurrency(value) {
+            return '$' + value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+
+        function calculateLoan() {
+            // Get input values
+            const principal = parseFloat(document.getElementById('loanAmount').value);
+            const annualRate = parseFloat(document.getElementById('interestRate').value);
+            const months = parseInt(document.getElementById('repaymentPeriod').value);
+
+            // Validate inputs
+            if (isNaN(principal) || isNaN(annualRate) || isNaN(months) || 
+                principal <= 0 || annualRate < 0 || months <= 0) {
+                alert('Please enter valid values for all fields');
+                return;
+            }
+
+            // Convert annual rate to monthly rate
+            const monthlyRate = annualRate / 100 / 12;
+
+            // Calculate monthly payment using the formula:
+            // M = P * [r(1+r)^n] / [(1+r)^n - 1]
+            let monthlyPayment;
+            if (monthlyRate === 0) {
+                monthlyPayment = principal / months;
+            } else {
+                monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, months)) / 
+                                (Math.pow(1 + monthlyRate, months) - 1);
+            }
+
+            // Calculate totals
+            const totalAmount = monthlyPayment * months;
+            const totalInterest = totalAmount - principal;
+
+            // Update results display
+            document.getElementById('monthlyPayment').textContent = formatCurrency(monthlyPayment);
+            document.getElementById('totalPrincipal').textContent = formatCurrency(principal);
+            document.getElementById('totalInterest').textContent = formatCurrency(totalInterest);
+            document.getElementById('totalAmount').textContent = formatCurrency(totalAmount);
+
+            // Generate amortization schedule
+            generateAmortizationSchedule(principal, monthlyRate, monthlyPayment, months);
+
+            // Show amortization section
+            document.getElementById('amortizationSection').classList.remove('hidden');
+        }
+
+        function generateAmortizationSchedule(principal, monthlyRate, monthlyPayment, months) {
+            const tableBody = document.getElementById('amortizationTable');
+            tableBody.innerHTML = '';
+
+            let balance = principal;
+
+            for (let month = 1; month <= months; month++) {
+                // Calculate interest for this month
+                const interestPayment = balance * monthlyRate;
+                
+                // Calculate principal payment
+                const principalPayment = monthlyPayment - interestPayment;
+                
+                // Update balance
+                balance -= principalPayment;
+                
+                // Ensure balance doesn't go negative due to rounding
+                if (balance < 0.01) balance = 0;
+
+                // Create table row
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${month}</td>
+                    <td>${formatCurrency(monthlyPayment)}</td>
+                    <td>${formatCurrency(principalPayment)}</td>
+                    <td>${formatCurrency(interestPayment)}</td>
+                    <td>${formatCurrency(balance)}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            }
+        }
+
+        // Calculate on page load with default values
+        window.addEventListener('load', function() {
+            calculateLoan();
+        });
+
+        // Allow Enter key to trigger calculation
+        document.querySelectorAll('input').forEach(input => {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    calculateLoan();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
